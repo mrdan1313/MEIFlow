@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEI Flow | Gestão Financeira com PDF</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --bg-light: #f4f5f7;
+            --card-bg: #ffffff;
+            --text-dark: #2d3436;
+            --text-gray: #636e72;
+            --border-color: #dfe6e9;
+            --accent-gray: #b2bec3;
+            --positive: #2ecc71;
+            --positive-bg: #e8f8f0;
+            --negative: #e74c3c;
+            --negative-bg: #fdedec;
+            --primary: #444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 240px;
+            background: #222;
+            color: white;
+            padding: 2rem 1rem;
+            position: fixed;
+            height: 100%;
+        }
+
+        .logo { font-size: 1.5rem; font-weight: 700; margin-bottom: 3rem; text-align: center; }
+        .logo span { color: var(--accent-gray); }
+        nav ul { list-style: none; }
+        nav li { padding: 1rem; border-radius: 8px; background: #333; font-weight: 500; text-align: center; }
+
+        /* Content Area */
+        .main-content {
+            margin-left: 240px;
+            padding: 2rem;
+            width: calc(100% - 240px);
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .header-actions { display: flex; gap: 1rem; align-items: center; }
+
+        .filter-group input {
+            padding: 0.6rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .filter-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .btn-pdf {
+            padding: 0.6rem 1rem;
+            background: #2d3436;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+        }
+
+        .btn-pdf:hover { 
+            background: #000;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Cards */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+
+        .card h3 { 
+            font-size: 0.85rem; 
+            color: var(--text-gray); 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            margin-bottom: 0.5rem;
+        }
+        
+        .card p { 
+            font-size: 1.8rem; 
+            font-weight: 700;
+            transition: color 0.3s ease;
+        }
+
+        /* Dashboard Grid */
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card-bg { 
+            background: var(--card-bg); 
+            padding: 1.5rem; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .card-bg:hover {
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+        
+        h2 { 
+            font-size: 1.1rem; 
+            margin-bottom: 1.5rem; 
+            color: var(--text-dark); 
+            border-left: 4px solid var(--primary); 
+            padding-left: 10px;
+        }
+
+        /* Forms */
+        .input-group { margin-bottom: 1rem; }
+        .input-group label { 
+            display: block; 
+            font-size: 0.85rem; 
+            margin-bottom: 0.4rem; 
+            color: var(--text-gray);
+            transition: color 0.3s ease;
+        }
+        
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(68, 68, 68, 0.1);
+        }
+
+        .btn-save {
+            width: 100%;
+            padding: 0.9rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-save:hover {
+            background: #222;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn-save:active {
+            transform: translateY(0);
+        }
+
+        /* Table */
+        .table-responsive { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        table th { 
+            text-align: left; 
+            padding: 1rem; 
+            border-bottom: 2px solid var(--bg-light); 
+            color: var(--text-gray); 
+            font-size: 0.85rem;
+        }
+        
+        table td { 
+            padding: 1rem; 
+            border-bottom: 1px solid var(--bg-light); 
+            font-size: 0.9rem;
+        }
+
+        table tr {
+            transition: background-color 0.2s ease;
+        }
+
+        table tr:hover {
+            background-color: rgba(0,0,0,0.02);
+        }
+
+        .btn-delete { 
+            background: none; 
+            border: none; 
+            color: var(--negative); 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+            padding: 0.4rem 0.8rem;
+            border-radius: 4px;
+        }
+
+        .btn-delete:hover {
+            background-color: var(--negative-bg);
+            transform: scale(1.05);
+        }
+
+        /* Status colors */
+        .text-positive { color: var(--positive); }
+        .text-negative { color: var(--negative); }
+        .bg-positive { 
+            background-color: var(--positive-bg) !important; 
+            color: var(--positive) !important; 
+            border: 1px solid var(--positive);
+        }
+        .bg-negative { 
+            background-color: var(--negative-bg) !important; 
+            color: var(--negative) !important; 
+            border: 1px solid var(--negative);
+        }
+        
+        .chart-container { 
+            height: 280px; 
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Animações de fade */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+
+        /* Estilo específico para quando gerar o PDF (ocultar botões) */
+        .no-pdf { display: initial; }
+
+        @media (max-width: 1024px) {
+            .grid-layout { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; width: 100%; }
+            .summary-cards { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <aside class="sidebar no-print">
+        <div class="logo">MEI<span>Flow</span></div>
+        <nav>
+            <ul>
+                <li>Painel Principal</li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content" id="report-area">
+        <header>
+            <h1>Gestão MEI</h1>
+            <div class="header-actions">
+                <button onclick="generatePDF()" class="btn-pdf no-print">Gerar Relatório PDF</button>
+                <div class="filter-group no-print">
+                    <input type="month" id="monthFilter" onchange="updateUI()">
+                </div>
+            </div>
+        </header>
+
+        <section class="summary-cards">
+            <div class="card">
+                <h3>Recebimentos</h3>
+                <p id="totalIn">R$ 0,00</p>
+            </div>
+            <div class="card">
+                <h3>Saídas</h3>
+                <p id="totalOut">R$ 0,00</p>
+            </div>
+            <div class="card" id="balanceCard">
+                <h3>Saldo Líquido</h3>
+                <p id="totalBalance">R$ 0,00</p>
+            </div>
+        </section>
+
+        <div class="grid-layout">
+            <section class="section-form card-bg no-print">
+                <h2>Novo Lançamento</h2>
+                <form id="financeForm">
+                    <div class="input-group">
+                        <label>Descrição</label>
+                        <input type="text" id="desc" placeholder="Ex: Venda de serviço" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Valor (R$)</label>
+                        <input type="number" id="val" step="0.01" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Tipo</label>
+                        <select id="type">
+                            <option value="in">Recebimento (+)</option>
+                            <option value="out">Saída (-)</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Data</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    <button type="submit" class="btn-save">Registrar</button>
+                </form>
+            </section>
+
+            <section class="section-chart card-bg">
+                <h2>Gráfico de Fluxo</h2>
+                <div class="chart-container">
+                    <canvas id="financeChart"></canvas>
+                </div>
+            </section>
+        </div>
+
+        <section class="section-table card-bg">
+            <h2>Histórico Mensal</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Descrição</th>
+                            <th>Data</th>
+                            <th>Valor</th>
+                            <th class="no-print">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let transactions = JSON.parse(localStorage.getItem('mei_pro_data')) || [];
+        let myChart = null;
+
+        const form = document.getElementById('financeForm');
+        const monthFilter = document.getElementById('monthFilter');
+        const transactionBody = document.getElementById('transactionBody');
+
+        // Data atual para filtro
+        monthFilter.value = new Date().toISOString().substring(0, 7);
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const dateVal = document.getElementById('date').value;
+            const item = {
+                id: Date.now(),
+                desc: document.getElementById('desc').value,
+                amount: parseFloat(document.getElementById('val').value),
+                type: document.getElementById('type').value,
+                date: dateVal,
+                monthRef: dateVal.substring(0, 7)
+            };
+            transactions.push(item);
+            localStorage.setItem('mei_pro_data', JSON.stringify(transactions));
+            form.reset();
+            updateUI(true);
+        });
+
+        function deleteTransaction(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            localStorage.setItem('mei_pro_data', JSON.stringify(transactions));
+            updateUI(true);
+        }
+
+        function updateUI(animate = false) {
+            const selectedMonth = monthFilter.value;
+            const filtered = transactions.filter(t => t.monthRef === selectedMonth);
+            
+            const inc = filtered.filter(t => t.type === 'in').reduce((acc, t) => acc + t.amount, 0);
+            const exp = filtered.filter(t => t.type === 'out').reduce((acc, t) => acc + t.amount, 0);
+            const bal = inc - exp;
+
+            // Atualiza valores com transição suave
+            const totalInEl = document.getElementById('totalIn');
+            const totalOutEl = document.getElementById('totalOut');
+            const totalBalanceEl = document.getElementById('totalBalance');
+
+            if (animate) {
+                totalInEl.classList.add('fade-in');
+                totalOutEl.classList.add('fade-in');
+                totalBalanceEl.classList.add('fade-in');
+            }
+
+            totalInEl.innerText = inc.toLocaleString('pt-br', {style:'currency', currency:'BRL'});
+            totalOutEl.innerText = exp.toLocaleString('pt-br', {style:'currency', currency:'BRL'});
+            totalBalanceEl.innerText = bal.toLocaleString('pt-br', {style:'currency', currency:'BRL'});
+
+            const card = document.getElementById('balanceCard');
+            card.className = 'card';
+            if(bal > 0) card.classList.add('bg-positive');
+            if(bal < 0) card.classList.add('bg-negative');
+
+            // Remove animação após completar
+            setTimeout(() => {
+                totalInEl.classList.remove('fade-in');
+                totalOutEl.classList.remove('fade-in');
+                totalBalanceEl.classList.remove('fade-in');
+            }, 300);
+
+            transactionBody.innerHTML = '';
+            filtered.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(t => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${t.desc}</td>
+                    <td>${t.date.split('-').reverse().join('/')}</td>
+                    <td class="${t.type === 'in' ? 'text-positive' : 'text-negative'}">
+                        ${t.type === 'in' ? '+' : '-'} ${t.amount.toLocaleString('pt-br', {style:'currency', currency:'BRL'})}
+                    </td>
+                    <td class="no-print"><button class="btn-delete" onclick="deleteTransaction(${t.id})">Apagar</button></td>
+                `;
+                transactionBody.appendChild(tr);
+            });
+
+            renderChart(inc, exp);
+        }
+
+        function renderChart(inc, exp) {
+            const ctx = document.getElementById('financeChart').getContext('2d');
+            
+            if (myChart) {
+                // Atualiza dados do gráfico existente com animação suave
+                myChart.data.datasets[0].data = [inc, exp];
+                myChart.update('active');
+            } else {
+                // Cria novo gráfico de pizza
+                myChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Entradas', 'Saídas'],
+                        datasets: [{
+                            data: [inc, exp],
+                            backgroundColor: ['#2ecc71', '#e74c3c'],
+                            borderColor: ['#27ae60', '#c0392b'],
+                            borderWidth: 2,
+                            hoverOffset: 8
+                        }]
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { 
+                                display: true,
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    font: {
+                                        size: 13,
+                                        family: 'Inter'
+                                    },
+                                    usePointStyle: true,
+                                    pointStyle: 'circle'
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed || 0;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                        return `${label}: ${value.toLocaleString('pt-br', {style:'currency', currency:'BRL'})} (${percentage}%)`;
+                                    }
+                                },
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                padding: 12,
+                                cornerRadius: 6,
+                                titleFont: {
+                                    size: 14,
+                                    family: 'Inter'
+                                },
+                                bodyFont: {
+                                    size: 13,
+                                    family: 'Inter'
+                                }
+                            }
+                        },
+                        animation: {
+                            animateRotate: true,
+                            animateScale: true,
+                            duration: 800,
+                            easing: 'easeInOutQuart'
+                        }
+                    }
+                });
+            }
+        }
+
+        // Função para Gerar PDF
+        function generatePDF() {
+            const element = document.getElementById('report-area');
+            const btnPdf = document.querySelector('.btn-pdf');
+            const monthInput = document.querySelector('.filter-group');
+            const sidebar = document.querySelector('.sidebar');
+            
+            // Configurações do PDF
+            const opt = {
+                margin: 10,
+                filename: `Relatorio_MEI_${monthFilter.value}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            // Esconde elementos que não devem sair no PDF
+            const noPrintElements = document.querySelectorAll('.no-print');
+            noPrintElements.forEach(el => el.style.display = 'none');
+            
+            // Ajusta margem temporariamente para o PDF ocupar a tela toda
+            const mainContent = document.querySelector('.main-content');
+            mainContent.style.marginLeft = "0";
+            mainContent.style.width = "100%";
+
+            html2pdf().set(opt).from(element).save().then(() => {
+                // Restaura os elementos após gerar
+                noPrintElements.forEach(el => el.style.display = '');
+                mainContent.style.marginLeft = "";
+                mainContent.style.width = "";
+                updateUI(); // Redesenha o gráfico para garantir que não quebre
+            });
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>
